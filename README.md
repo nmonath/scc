@@ -1,6 +1,6 @@
 # Sub-Cluster Component Clustering Algorithm
 
-This is a numpy / python implementation of SCC. For relatively sparse graph inputs, it should scale
+This is a scipy /numpy / python implementation of SCC. For relatively sparse graph inputs, it should scale
 relatively easily to datasets of millions of nodes. This implementation assumes similarities 
 are given. 
 
