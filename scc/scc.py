@@ -118,7 +118,8 @@ class SCC(object):
     def assignments_by_threshold(self, threshold):
         closest_v = np.Inf
         closest = 0
-        for i,t in enumerate(self.taus):
+        for i,r in enumerate(self.rounds):
+            t = self.taus[i]
             v = np.abs(t-threshold)
             if v < closest_v:
                 closest = i
@@ -128,8 +129,8 @@ class SCC(object):
     def assignments_by_num_clusters(self, k):
         closest_v = np.Inf
         closest = 0
-        for i,t in enumerate(self.taus):
-            v = np.abs(self.rounds[i].num_uniq_parents-k)
+        for i,r in enumerate(self.rounds):
+            v = np.abs(r.num_uniq_parents-k)
             if v < closest_v:
                 closest = i
                 closest_v = v
