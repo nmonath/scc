@@ -1,4 +1,4 @@
-/*
+"""
  * Copyright (c) 2021 The authors of SCC All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+"""
 
 from scipy.sparse import coo_matrix, csr_matrix
 import os
@@ -29,9 +29,9 @@ import time
 
 logging.set_verbosity(logging.INFO)
 
-class SCCRound(object):
+class TreeLevel(object):
 
-    def __init__(self, tau, dist_graph, node_counts,cluster_assignments=None):
+    def __init__(self, tau, dist_graph, node_counts, cluster_assignments=None, cc_connection='weak'):
         self.dist_graph = dist_graph
         self.node_counts = node_counts
         # parents[i] gives the id of the node in next round of node i
@@ -40,6 +40,7 @@ class SCCRound(object):
         self.nn_edges = None
         self.nn_edge_sims = None
         self.tau = tau
+        self.cc_connection=cc_connection
         # cluster_assignments[j] gives cluster id of jth point in this round
         if cluster_assignments is None:
           self.cluster_assignments = np.arange(self.dist_graph.shape[0],dtype=np.int32)
@@ -103,26 +104,48 @@ class SCCRound(object):
             logging.info('Graph Contract: Done. nodes %s, edges %s, time %s', next_round_dist_sum.shape[0],
                          next_round_dist_sum.nnz,
                          contract_t - contract_s)
-            return SCCRound(next_tau, dist_graph=next_round_dist_sum, 
-                            node_counts=next_counts_nodes, 
-                            cluster_assignments=next_cluster_assignments)
+            return TreeLevel(next_tau, dist_graph=next_round_dist_sum,
+                             node_counts=next_counts_nodes,
+                             cluster_assignments=next_cluster_assignments,
+                             cc_connection=self.cc_connection)
         else:
             return None
 
 class SCC(object):
-    def __init__(self, g, num_rounds, taus):
+    def __init__(self, g, num_rounds, taus, cc_connection='weak'):
         self.g = g
-        uniq_ids = np.unique(g.row)
+        self.uniq_ids = np.unique(g.row)
         self.num_rounds = num_rounds
         self.taus = taus
         self.rounds = []
+        self.cc_connection = cc_connection
 
+    def assignments_by_threshold(self, threshold):
+        closest_v = np.Inf
+        closest = 0
+        for i,t in enumerate(self.taus):
+            v = np.abs(t-threshold)
+            if v < closest_v:
+                closest = i
+                closest_v = v
+        return self.rounds[closest].cluster_assignments
+
+    def assignments_by_num_clusters(self, k):
+        closest_v = np.Inf
+        closest = 0
+        for i,t in enumerate(self.taus):
+            v = np.abs(self.rounds[i].num_uniq_parents-k)
+            if v < closest_v:
+                closest = i
+                closest_v = v
+        return self.rounds[closest].cluster_assignments
 
     def fit(self):
         st = time.time()
-        self.rounds.append(SCCRound(tau=self.taus[0],
-                                    dist_graph=self.g.copy(),
-                                    node_counts=np.ones(self.g.shape[0])))
+        self.rounds.append(TreeLevel(tau=self.taus[0],
+                                     dist_graph=self.g.copy(),
+                                     node_counts=np.ones(self.g.shape[0]),
+                                     cc_connection=self.cc_connection))
         for i in range(self.num_rounds):
             logging.info('round %s', i)
             logging.info('round %s starts with %s nodes', i, self.rounds[i].dist_graph.shape[0])
@@ -199,3 +222,11 @@ class SCC(object):
             fout.write('root\tNone\tNone\n')
             logging.info('writing fininshed!')
 
+
+class Affinity(SCC):
+    def __init__(self, g, num_rounds):
+        super(Affinity, self).__init__(g, num_rounds, taus=-np.Inf*np.ones(num_rounds))
+
+class RecipNN(SCC):
+    def __init__(self, g, num_rounds):
+        super(RecipNN, self).__init__(g, num_rounds, taus=-np.Inf*np.ones(num_rounds), cc_connection='strong')
