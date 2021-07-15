@@ -65,12 +65,12 @@ class TreeLevel(object):
                 shape=self.dist_graph.shape)
             next_round_binary.eliminate_zeros()
             oneNN_e = time.time()
-            logging.info('Nearest Neighbor: Done. nodes %s, edges %s, time %s', self.dist_graph.shape[0], row.shape[0], oneNN_e-oneNN_s)
+            logging.debug('Nearest Neighbor: Done. nodes %s, edges %s, time %s', self.dist_graph.shape[0], row.shape[0], oneNN_e-oneNN_s)
             CC_s = time.time()
             num_uniq_parents, parent_map = connected_components(next_round_binary,
                                                                 directed=False, connection='weak')
             CC_e = time.time()
-            logging.info('Connected Components: Done. nodes %s, edges %s, time %s', next_round_binary.shape[0], next_round_binary.nnz,
+            logging.debug('Connected Components: Done. nodes %s, edges %s, time %s', next_round_binary.shape[0], next_round_binary.nnz,
                          CC_e - CC_s)
             self.parents = parent_map
             self.num_uniq_parents = num_uniq_parents
@@ -96,7 +96,7 @@ class TreeLevel(object):
             next_counts_nodes = next_counts_nodes.todense().A[:, 0]
             next_cluster_assignments = self.parents[self.cluster_assignments]
             contract_t = time.time()
-            logging.info('Graph Contract: Done. nodes %s, edges %s, time %s', next_round_dist_sum.shape[0],
+            logging.debug('Graph Contract: Done. nodes %s, edges %s, time %s', next_round_dist_sum.shape[0],
                          next_round_dist_sum.nnz,
                          contract_t - contract_s)
             return TreeLevel(next_tau, dist_graph=next_round_dist_sum,
@@ -143,21 +143,21 @@ class SCC(object):
                                      node_counts=np.ones(self.g.shape[0]),
                                      cc_connection=self.cc_connection))
         for i in range(self.num_rounds):
-            logging.info('round %s', i)
-            logging.info('round %s starts with %s nodes', i, self.rounds[i].dist_graph.shape[0])
+            logging.debug('round %s', i)
+            logging.debug('round %s starts with %s nodes', i, self.rounds[i].dist_graph.shape[0])
             self.rounds[i].perform_round()
             if i != self.num_rounds-1:
                 nr = self.rounds[i].form_next_round(self.taus[i+1])
                 if nr is not None and nr.dist_graph.nnz > 0 and nr.dist_graph.shape[0] > 1:
-                    logging.info('round %s ends with %s nodes',i,  nr.dist_graph.shape[0])
+                    logging.debug('round %s ends with %s nodes',i,  nr.dist_graph.shape[0])
                     self.rounds.append(nr)
                 else:
                     break
         ent = time.time()
-        logging.info('SCC time done in %s', ent-st)
+        logging.debug('SCC time done in %s', ent-st)
 
     def write_tsv(self, outfile, labels):
-        logging.info('writing tsv tree @ %s', outfile)
+        logging.debug('writing tsv tree @ %s', outfile)
         with open(outfile, 'w') as fout:
             for round_i, round_obj in tqdm(enumerate(self.rounds)):
 
@@ -174,11 +174,11 @@ class SCC(object):
                     fout.write('%s\t%s\t%s\n' % (j_id, par_j_id, lbl))
 
             fout.write('root\tNone\tNone\n')
-            logging.info('writing fininshed!')
+            logging.debug('writing fininshed!')
 
 
     def write_and_prune(self, outfile, labels):
-        logging.info('writing tsv tree @ %s', outfile)
+        logging.debug('writing tsv tree @ %s', outfile)
         skip_map = dict()
         with open(outfile, 'w') as fout:
             for round_i, round_obj in tqdm(enumerate(self.rounds)):
@@ -216,7 +216,7 @@ class SCC(object):
                         fout.write('%s\t%s\t%s\n' % (j_id, par_j_id, lbl))
 
             fout.write('root\tNone\tNone\n')
-            logging.info('writing fininshed!')
+            logging.debug('writing fininshed!')
 
 
 class Affinity(SCC):
