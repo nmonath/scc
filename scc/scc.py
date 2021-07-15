@@ -50,7 +50,7 @@ class TreeLevel(object):
             # normalize the data by counts
             data = self.dist_graph.data.copy()
             data /= (self.node_counts[row] * self.node_counts[col])
-            to_use_binary = data >= self.tau
+            to_use_binary = np.logical_and(data >= self.tau, row != col)
             g = csr_matrix((data[to_use_binary],
                             (row[to_use_binary],
                              col[to_use_binary])),
