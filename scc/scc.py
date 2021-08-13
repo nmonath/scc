@@ -68,7 +68,7 @@ class TreeLevel(object):
             logging.debug('Nearest Neighbor: Done. nodes %s, edges %s, time %s', self.dist_graph.shape[0], row.shape[0], oneNN_e-oneNN_s)
             CC_s = time.time()
             num_uniq_parents, parent_map = connected_components(next_round_binary,
-                                                                directed=False, connection='weak')
+                                                                directed=False, connection=self.cc_connection)
             CC_e = time.time()
             logging.debug('Connected Components: Done. nodes %s, edges %s, time %s', next_round_binary.shape[0], next_round_binary.nnz,
                          CC_e - CC_s)
